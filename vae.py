@@ -1,5 +1,16 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+
+class VAELoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x, y, mean, logvar):
+        kl_loss = -0.5 * (logvar - torch.exp(logvar) - torch.pow(mean, 2) + 1)
+        mse_loss = F.mse_loss(x, y)
+        return mse_loss + kl_loss
 
 
 class VAEEncoder(nn.Module):
@@ -45,6 +56,17 @@ class VAEEncoder(nn.Module):
         return mean, logvar
 
 
+class VAESampler(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, mean, logvar):
+        noise = torch.randn_like(mean, device=mean.device)
+        std = torch.exp(0.5 * logvar)
+        z = mean + std * noise
+        return z
+
+
 class VAEDecoder(nn.Module):
     def __init__(self, latent_dim=128):
         super().__init__()
@@ -69,11 +91,7 @@ class VAEDecoder(nn.Module):
 
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
 
-    def forward(self, mean, logvar):
-        # Sampling
-        noise = torch.randn_like(mean, device=mean.device)
-        std = torch.exp(0.5 * logvar)
-        z = mean + std * noise
+    def forward(self, z):
         # Decoding
         x = self.projection(z)
         x = x.view(x.size(0), 64, 7, 7)
@@ -84,3 +102,24 @@ class VAEDecoder(nn.Module):
         x = self.conv3(x)
         x = self.out_conv(x)
         return x
+
+
+class VAE(nn.Module):
+    def __init__(self, latent_dim=128):
+        """
+        :param latent_dim: Latent dimension
+        """
+        super().__init__()
+        self.encoder = VAEEncoder(latent_dim)
+        self.sampler = VAESampler()
+        self.decoder = VAEDecoder(latent_dim)
+
+    def forward(self, x):
+        """
+        :param x: Ground truth image
+        :return: Tuple of (generated image, mean, logvar)
+        """
+        mean, logvar = self.encoder(x)
+        z = self.sampler(mean, logvar)
+        y = self.decoder(z)
+        return y, mean, logvar
