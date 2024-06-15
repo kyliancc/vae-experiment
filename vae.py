@@ -8,7 +8,7 @@ class VAELoss(nn.Module):
         super().__init__()
 
     def forward(self, x, y, mean, logvar):
-        kl_loss = -0.5 * (logvar - torch.exp(logvar) - torch.pow(mean, 2) + 1)
+        kl_loss = (-0.5 * (logvar - torch.exp(logvar) - torch.pow(mean, 2) + 1)).mean()
         mse_loss = F.mse_loss(x, y)
         return mse_loss + kl_loss
 

@@ -17,7 +17,7 @@ def parse_arguments():
     parser.add_argument('--epochs', '-e', type=int, default=100, help='epochs to train')
     parser.add_argument('--num_workers', '-w', type=int, default=4, help='how many dataloader workers')
     parser.add_argument('--load', '-f', type=str, default=None, help='path to checkpoint')
-    parser.add_argument('--save', '-s', type=int, default=200, help='how many iterations to save')
+    parser.add_argument('--save', '-s', type=int, default=500, help='how many iterations to save')
     return parser.parse_args()
 
 
@@ -33,7 +33,7 @@ def main():
         torchvision.transforms.Normalize((0.5,), (0.5,)),
     ])
 
-    train_dataset = MNIST(root='./data', train=True, transform=transform)
+    train_dataset = MNIST(root='./data', train=True, transform=transform, download=True)
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
     model = VAE()
